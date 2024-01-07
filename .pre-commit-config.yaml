@@ -1,0 +1,28 @@
+exclude: (alembic)
+repos:
+  - repo: local
+    hooks:
+      - id: black
+        name: black
+        stages: [commit]
+        language: system
+        entry: pipenv run black
+        types: [python]
+
+      - id: autoflake
+        name: autoflake
+        stages: [commit]
+        language: system
+        entry: pipenv run autoflake -i
+        types: [python]
+        args:
+        - --remove-all-unused-imports
+        - --ignore-init-module-imports
+        - --remove-duplicate-keys
+
+      - id: isort
+        name: isort
+        stages: [commit]
+        language: system
+        entry: pipenv run isort
+        types: [python]
