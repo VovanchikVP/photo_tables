@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 pyinstaller = "*"
 asyncio = "*"
+pillow = "*"
 
 [dev-packages]
 pytest = "~=7.2.2"
