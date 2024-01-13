@@ -7,6 +7,8 @@ name = "pypi"
 pyinstaller = "*"
 asyncio = "*"
 pillow = "*"
+docx = "*"
+python-docx = "*"
 
 [dev-packages]
 pytest = "~=7.2.2"
