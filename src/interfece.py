@@ -7,8 +7,8 @@ from tkinter import (
 )
 from typing import Optional
 
-from run_process import RunProcess
-from stress_test import StressTest
+from src.create_docx import CreateDocx
+from src.run_process import RunProcess
 
 
 class LoadTester(Tk):
@@ -17,17 +17,17 @@ class LoadTester(Tk):
         self._queue = Queue()
         self._refresh_ms = 25
         self._loop = loop
-        self._load_test: Optional[StressTest] = None
-        self.title("URL Requester")
-        self._url_label = Label(self, text="URL:")
+        self._load_test: Optional[CreateDocx] = None
+        self.title("Формирование фототаблицы")
+        self._url_label = Label(self, text="Путь:")
         self._url_label.grid(column=0, row=0)
         self._url_field = Entry(self, width=10)
         self._url_field.grid(column=1, row=0)
-        self._request_label = Label(self, text="Number of requests:")
+        self._request_label = Label(self, text="Количество колонок:")
         self._request_label.grid(column=0, row=1)
         self._request_field = Entry(self, width=10)
         self._request_field.grid(column=1, row=1)
-        self._submit = ttk.Button(self, text="Submit", command=self._start)
+        self._submit = ttk.Button(self, text="Сформировать", command=self._start)
         self._submit.grid(column=2, row=1)
         self._pb_label = Label(self, text="Progress:")
         self._pb_label.grid(column=0, row=3)
@@ -38,8 +38,9 @@ class LoadTester(Tk):
 
     def _update_bar(self, pct: int):
         if pct == 100:
+            self._pb["value"] = pct
             self._load_test = None
-            self._submit["text"] = "Submit"
+            self._submit["text"] = "Сформировать"
         else:
             self._pb["value"] = pct
             self.after(self._refresh_ms, self._poll_queue)
@@ -57,20 +58,21 @@ class LoadTester(Tk):
 
     def _start(self):
         if self._load_test is None:
-            self._submit["text"] = "Cancel"
-            test = StressTest(
+            self._submit["text"] = "Отмена"
+            test = CreateDocx(
                 self._loop,
+                self._queue_update,
                 self._url_field.get(),
                 int(self._request_field.get()),
-                self._queue_update,
             )
+            self._pb["value"] = 0
             self.after(self._refresh_ms, self._poll_queue)
             test.start()
             self._load_test = test
         else:
             self._load_test.cancel()
             self._load_test = None
-            self._submit["text"] = "Submit"
+            self._submit["text"] = "Сформировать"
 
     def _start_ls(self):
         test = RunProcess(self._loop, ("ls",))
