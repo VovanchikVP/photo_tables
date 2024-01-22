@@ -1,11 +1,15 @@
 from queue import Queue
 from tkinter import (
+    NW,
+    Canvas,
     Entry,
     Label,
     Tk,
     ttk,
 )
 from typing import Optional
+
+from PIL import ImageTk
 
 from src.create_docx import CreateDocx
 from src.run_process import RunProcess
@@ -16,8 +20,10 @@ class LoadTester(Tk):
         Tk.__init__(self, *args, **kwargs)
         self._queue = Queue()
         self._refresh_ms = 25
+        self.row_img_table = 5
         self._loop = loop
         self._load_test: Optional[CreateDocx] = None
+        self._last_obj: Optional[CreateDocx] = None
         self.title("Формирование фототаблицы")
         self._url_label = Label(self, text="Путь:")
         self._url_label.grid(column=0, row=0)
@@ -41,6 +47,7 @@ class LoadTester(Tk):
             self._pb["value"] = pct
             self._load_test = None
             self._submit["text"] = "Сформировать"
+            self._create_image_table()
         else:
             self._pb["value"] = pct
             self.after(self._refresh_ms, self._poll_queue)
@@ -69,6 +76,7 @@ class LoadTester(Tk):
             self.after(self._refresh_ms, self._poll_queue)
             test.start()
             self._load_test = test
+            self._last_obj = test
         else:
             self._load_test.cancel()
             self._load_test = None
@@ -77,3 +85,19 @@ class LoadTester(Tk):
     def _start_ls(self):
         test = RunProcess(self._loop, ("ls",))
         test.start()
+
+    def _create_image_table(
+        self,
+    ):
+        count = 0
+        for row in range(self._last_obj.row):
+            for col in range(self._last_obj.col):
+                if count < len(self._last_obj.files):
+                    img = self._last_obj.files[count]
+                    size = img.size[0] // 5, img.size[1] // 5
+                    img = img.resize(size)
+                    setattr(self, f"img_{count}", ImageTk.PhotoImage(img))
+                    canvas = Canvas(self, bg="white", height=size[1], width=size[0])
+                    canvas.grid(row=row + self.row_img_table, column=col)
+                    canvas.create_image(3, 3, anchor=NW, image=getattr(self, f"img_{count}"))
+                    count += 1

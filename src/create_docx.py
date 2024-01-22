@@ -25,15 +25,15 @@ class CreateDocx:
         callback: Callable[[int, int], None],
         path: str = None,
         col: int = 2,
-        output: Path = Path("demo.docx"),
     ):
         self._completed_files: int = 0
         self._load_test_future: Optional[Future] = None
         self._photo_dir = Path(path) if path else self.PHOTO_DIR_DEFAULT
         self._all_file_names = [i for i in listdir(self._photo_dir) if i.split(".")[-1] in self.SUPPORTED_FORMATS]
         self._all_files = len(self._all_file_names)
-        self._col = col
-        self._output = output
+        self.col = col
+        self.row: Optional[int] = None
+        self.files: Optional[Image] = None
         self._loop = loop
         self._callback = callback
 
@@ -44,30 +44,32 @@ class CreateDocx:
         if self._load_test_future:
             self._loop.call_soon_threadsafe(self._load_test_future.cancel)
 
-    async def _make_files(self):
-        """Открытие всех файлов"""
-        files = [self._get_files(i) for i in self._all_file_names]
-        row = self._all_files // self._col + bool(self._all_files % self._col)
-        files = await asyncio.gather(*files)
-
+    def save(self, output: str):
+        """Сохранение данных в файл"""
         doc = Document()
-        table = doc.add_table(row, self._col)
+        table = doc.add_table(self.row, self.col)
         img_index = 0
         for r in table.rows:
             for cell in r.cells:
-                if img_index < len(files):
+                if img_index < len(self.files):
                     p = cell.add_paragraph()
                     r = p.add_run()
-                    r.add_picture(files[img_index])
+                    img_byte_arr = io.BytesIO()
+                    self.files[img_index].save(img_byte_arr, format=self.files[img_index].format)
+                    r.add_picture(img_byte_arr)
                     r.add_text(self._all_file_names[img_index])
                     img_index += 1
-        doc.save(str(self._output))
+        doc.save(output)
+
+    async def _make_files(self):
+        """Открытие всех файлов"""
+        files = [self._get_files(i) for i in self._all_file_names]
+        self.row = self._all_files // self.col + bool(self._all_files % self.col)
+        self.files = await asyncio.gather(*files)
 
     async def _get_files(self, file_name: str):
         """Открытие файла"""
         img = Image.open(self._photo_dir / Path(file_name))
-        img_byte_arr = io.BytesIO()
-        img.save(img_byte_arr, format=img.format)
         self._completed_files = self._completed_files + 1
         self._callback(self._completed_files, self._all_files)
-        return img_byte_arr
+        return img
