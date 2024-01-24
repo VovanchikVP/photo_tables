@@ -1,10 +1,12 @@
 from queue import Queue
 from tkinter import (
+    END,
     NW,
     Canvas,
     Entry,
     Label,
     Tk,
+    filedialog,
     ttk,
 )
 from typing import Optional
@@ -21,6 +23,7 @@ class LoadTester(Tk):
         self._queue = Queue()
         self._refresh_ms = 25
         self.row_img_table = 5
+        self._width_photo = 200
         self._loop = loop
         self._load_test: Optional[CreateDocx] = None
         self._last_obj: Optional[CreateDocx] = None
@@ -29,6 +32,8 @@ class LoadTester(Tk):
         self._url_label.grid(column=0, row=0)
         self._url_field = Entry(self, width=10)
         self._url_field.grid(column=1, row=0)
+        self._run_ls = ttk.Button(self, text="Открыть", command=self._open_directory)
+        self._run_ls.grid(column=2, row=0)
         self._request_label = Label(self, text="Количество колонок:")
         self._request_label.grid(column=0, row=1)
         self._request_field = Entry(self, width=10)
@@ -41,6 +46,7 @@ class LoadTester(Tk):
         self._pb.grid(column=1, row=3, columnspan=2)
         self._run_ls = ttk.Button(self, text="Run LS", command=self._start_ls)
         self._run_ls.grid(column=0, row=4)
+        self._canvas_table = None
 
     def _update_bar(self, pct: int):
         if pct == 100:
@@ -90,14 +96,31 @@ class LoadTester(Tk):
         self,
     ):
         count = 0
+        if self._canvas_table is not None:
+            self._canvas_table.grid_remove()
+        _width = self._width_photo * self._last_obj.col + self._last_obj.col
+        self._canvas_table = Canvas(
+            self, bg="white", height=_width, width=_width, scrollregion=(0, 0, _width * 2, _width * 2)
+        )
+        self._canvas_table.grid(row=self.row_img_table, column=0, columnspan=4)
+        _height_row = 0
+        _height_row_after = 0
         for row in range(self._last_obj.row):
             for col in range(self._last_obj.col):
                 if count < len(self._last_obj.files):
                     img = self._last_obj.files[count]
-                    size = img.size[0] // 5, img.size[1] // 5
+                    size = self._width_photo, int(img.size[1] / img.size[0] * self._width_photo)
+                    if _height_row_after < _height_row + size[1]:
+                        _height_row_after = _height_row + size[1]
                     img = img.resize(size)
                     setattr(self, f"img_{count}", ImageTk.PhotoImage(img))
-                    canvas = Canvas(self, bg="white", height=size[1], width=size[0])
-                    canvas.grid(row=row + self.row_img_table, column=col)
-                    canvas.create_image(3, 3, anchor=NW, image=getattr(self, f"img_{count}"))
+                    self._canvas_table.create_image(
+                        col * size[0], _height_row, anchor=NW, image=getattr(self, f"img_{count}")
+                    )
                     count += 1
+            _height_row = _height_row_after
+
+    def _open_directory(self):
+        f = filedialog.askdirectory()
+        self._url_field.delete(0, END)
+        self._url_field.insert(0, f)
