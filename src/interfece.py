@@ -4,7 +4,9 @@ from tkinter import (
     NW,
     Canvas,
     Entry,
+    Frame,
     Label,
+    Scrollbar,
     Tk,
     filedialog,
     ttk,
@@ -53,7 +55,8 @@ class LoadTester(Tk):
             self._pb["value"] = pct
             self._load_test = None
             self._submit["text"] = "Сформировать"
-            self._create_image_table()
+            self._create_canvas()
+            # self._create_image_table()
         else:
             self._pb["value"] = pct
             self.after(self._refresh_ms, self._poll_queue)
@@ -91,6 +94,34 @@ class LoadTester(Tk):
     def _start_ls(self):
         test = RunProcess(self._loop, ("ls",))
         test.start()
+
+    def _create_canvas(self):
+        """Формирование канваса для фото таблицы"""
+        # self._canvas_table = Canvas(
+        #     self, bg="white", height=700, width=210, scrollregion=(0, 0, 600, 210)
+        # )
+        # vbar = Scrollbar(self, orient=VERTICAL)
+        # vbar.grid(row=self.row_img_table, column=5)
+        # vbar.config(command=self._canvas_table.yview)
+        # self._canvas_table.config(yscrollcommand=vbar.set)
+        # self._canvas_table.config(width=300, height=300)
+        # self._canvas_table.grid(row=self.row_img_table, column=0, columnspan=4)
+        v_scrollbar = Scrollbar(self)
+        c = Canvas(self, background="#D2D2D2", yscrollcommand=v_scrollbar.set)
+        v_scrollbar.config(command=c.yview)
+        v_scrollbar.grid(row=self.row_img_table, column=5)
+        f = Frame(c)  # Create the frame which will hold the widgets
+        c.grid(row=self.row_img_table, column=0, columnspan=4)
+        c.create_window(0, 0, window=f, anchor="nw")
+        for i in range(1000):
+            Label(f, wraplength=350, text=f"Строка №{i}").grid()
+
+        # Removed the frame packing
+        # f.pack()
+
+        # Updated the screen before calculating the scrollregion
+        self.update()
+        c.config(scrollregion=c.bbox("all"))
 
     def _create_image_table(
         self,
