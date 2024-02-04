@@ -4,9 +4,7 @@ from tkinter import (
     NW,
     Canvas,
     Entry,
-    Frame,
     Label,
-    Scrollbar,
     Tk,
     filedialog,
     ttk,
@@ -106,22 +104,21 @@ class LoadTester(Tk):
         # self._canvas_table.config(yscrollcommand=vbar.set)
         # self._canvas_table.config(width=300, height=300)
         # self._canvas_table.grid(row=self.row_img_table, column=0, columnspan=4)
-        v_scrollbar = Scrollbar(self)
-        c = Canvas(self, background="#D2D2D2", yscrollcommand=v_scrollbar.set)
-        v_scrollbar.config(command=c.yview)
-        v_scrollbar.grid(row=self.row_img_table, column=5)
-        f = Frame(c)  # Create the frame which will hold the widgets
-        c.grid(row=self.row_img_table, column=0, columnspan=4)
-        c.create_window(0, 0, window=f, anchor="nw")
+
+        # f = Frame(self, bg="white", height=297, width=210, padx=10, pady=10, relief='raised', borderwidth=2)
+        f = ScrollableFrame(self)
+        f.grid(row=self.row_img_table, column=0, columnspan=4)
+        f.grid_propagate(0)
+        # v_scrollbar = Scrollbar(self, orient="vertical", command=c.yview)
+        # c.configure(yscrollcommand=v_scrollbar.set)
+        # v_scrollbar.grid(row=self.row_img_table, column=5)
+        # c.grid(row=self.row_img_table, column=0, columnspan=4)
+        # c.create_window(0, 0, window=f, anchor="nw")
+
         for i in range(1000):
-            Label(f, wraplength=350, text=f"Строка №{i}").grid()
-
-        # Removed the frame packing
-        # f.pack()
-
-        # Updated the screen before calculating the scrollregion
-        self.update()
-        c.config(scrollregion=c.bbox("all"))
+            Label(f.scrollable_frame, wraplength=350, text=f"Строка №{i}").grid()
+        # c.update_idletasks()
+        # c.configure(scrollregion=c.bbox("all"))
 
     def _create_image_table(
         self,
@@ -155,3 +152,21 @@ class LoadTester(Tk):
         f = filedialog.askdirectory()
         self._url_field.delete(0, END)
         self._url_field.insert(0, f)
+
+
+class ScrollableFrame(ttk.Frame):
+    def __init__(self, container, *args, **kwargs):
+        super().__init__(container, *args, **kwargs)
+        canvas = Canvas(self)
+        scrollbar = ttk.Scrollbar(self, orient="vertical", command=canvas.yview)
+        self.scrollable_frame = ttk.Frame(canvas)
+
+        self.scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+
+        canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.grid(row=5, column=0, columnspan=4)
+        scrollbar.grid(row=5, column=5)
+        canvas.update_idletasks()

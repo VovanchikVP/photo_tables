@@ -1,4 +1,6 @@
 venv/
+src/__pycache__/
 .idea/
 *.xlsx
 *.csv
+*.pyc
