@@ -95,30 +95,25 @@ class LoadTester(Tk):
 
     def _create_canvas(self):
         """Формирование канваса для фото таблицы"""
-        # self._canvas_table = Canvas(
-        #     self, bg="white", height=700, width=210, scrollregion=(0, 0, 600, 210)
-        # )
-        # vbar = Scrollbar(self, orient=VERTICAL)
-        # vbar.grid(row=self.row_img_table, column=5)
-        # vbar.config(command=self._canvas_table.yview)
-        # self._canvas_table.config(yscrollcommand=vbar.set)
-        # self._canvas_table.config(width=300, height=300)
-        # self._canvas_table.grid(row=self.row_img_table, column=0, columnspan=4)
-
-        # f = Frame(self, bg="white", height=297, width=210, padx=10, pady=10, relief='raised', borderwidth=2)
+        _height_row = 0
         f = ScrollableFrame(self)
         f.grid(row=self.row_img_table, column=0, columnspan=4)
-        f.grid_propagate(0)
-        # v_scrollbar = Scrollbar(self, orient="vertical", command=c.yview)
-        # c.configure(yscrollcommand=v_scrollbar.set)
-        # v_scrollbar.grid(row=self.row_img_table, column=5)
-        # c.grid(row=self.row_img_table, column=0, columnspan=4)
-        # c.create_window(0, 0, window=f, anchor="nw")
+        f.configure(borderwidth=2, relief="raised")
+        f.grid_propagate(False)
+        canvas = Canvas(f.scrollable_frame, bg="white", height=297, width=210)
+        canvas.grid(pady=10, padx=10)
+        for count, img in enumerate(self._last_obj.files):
+            size = self._width_photo, int(img.size[1] / img.size[0] * self._width_photo)
+            img = img.resize(size)
+            setattr(self, f"img_{count}", ImageTk.PhotoImage(img))
+            if _height_row + size[1] > 297 and _height_row > 0:
+                _height_row = 0
+                canvas = Canvas(f.scrollable_frame, bg="white", height=297, width=210)
+                canvas.grid(pady=10, padx=10)
 
-        for i in range(1000):
-            Label(f.scrollable_frame, wraplength=350, text=f"Строка №{i}").grid()
-        # c.update_idletasks()
-        # c.configure(scrollregion=c.bbox("all"))
+            canvas.create_image(0, _height_row, anchor=NW, image=getattr(self, f"img_{count}"))
+            _height_row = _height_row + size[1] + 10
+            count += 1
 
     def _create_image_table(
         self,
@@ -160,13 +155,9 @@ class ScrollableFrame(ttk.Frame):
         canvas = Canvas(self)
         scrollbar = ttk.Scrollbar(self, orient="vertical", command=canvas.yview)
         self.scrollable_frame = ttk.Frame(canvas)
-
         self.scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-
         canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
-
         canvas.configure(yscrollcommand=scrollbar.set)
-
         canvas.grid(row=5, column=0, columnspan=4)
         scrollbar.grid(row=5, column=5)
         canvas.update_idletasks()
