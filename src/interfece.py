@@ -96,6 +96,8 @@ class LoadTester(Tk):
     def _create_canvas(self):
         """Формирование канваса для фото таблицы"""
         _height_row = 0
+        _width_row = 0
+        _max_height_row = 0
         f = ScrollableFrame(self)
         f.grid(row=self.row_img_table, column=0, columnspan=4)
         f.configure(borderwidth=2, relief="raised")
@@ -103,17 +105,37 @@ class LoadTester(Tk):
         canvas = Canvas(f.scrollable_frame, bg="white", height=297, width=210)
         canvas.grid(pady=10, padx=10)
         for count, img in enumerate(self._last_obj.files):
-            size = self._width_photo, int(img.size[1] / img.size[0] * self._width_photo)
+            size = self._create_size_photo(img)
             img = img.resize(size)
             setattr(self, f"img_{count}", ImageTk.PhotoImage(img))
-            if _height_row + size[1] > 297 and _height_row > 0:
-                _height_row = 0
+            canvas.create_image(_width_row, _height_row, anchor=NW, image=getattr(self, f"img_{count}"))
+            _width_row, _height_row, _new_page = self._get_coordinate_photo(_width_row, _height_row, size)
+            if _new_page:
                 canvas = Canvas(f.scrollable_frame, bg="white", height=297, width=210)
                 canvas.grid(pady=10, padx=10)
 
-            canvas.create_image(0, _height_row, anchor=NW, image=getattr(self, f"img_{count}"))
-            _height_row = _height_row + size[1] + 10
-            count += 1
+    @staticmethod
+    def _get_coordinate_photo(width_row, height_row, size) -> tuple:
+        """Вычисление координат фотографии на канвасе"""
+        _height_row = height_row
+        _width_row = width_row
+        _new_page = False
+        if _width_row + size[0] > 210 and _width_row > 0:
+            _width_row = 0
+            if _height_row + size[1] > 297 and _height_row > 0:
+                _height_row = 0
+                _new_page = True
+            else:
+                _height_row = _height_row + size[1] + 10
+        else:
+            _width_row = _width_row + size[0]
+        return _width_row, _height_row, _new_page
+
+    def _create_size_photo(self, img: ImageTk):
+        """Формирование размера фотографии"""
+        width = int(self._width_photo / int(self._request_field.get()))
+        height = int(img.size[1] / img.size[0] * width)
+        return width, height
 
     def _create_image_table(
         self,
