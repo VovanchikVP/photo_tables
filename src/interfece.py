@@ -117,7 +117,10 @@ class LoadTester(Tk):
                 _height_row = 0
                 canvas = Canvas(f.scrollable_frame, bg="white", height=297, width=210)
                 canvas.grid(pady=10, padx=10)
-            canvas.create_image(_width_row, _height_row, anchor=NW, image=getattr(self, f"img_{count}"))
+            img_name = canvas.create_image(
+                _width_row, _height_row, anchor=NW, image=getattr(self, f"img_{count}"), tag=f"img_{count}"
+            )
+            canvas.tag_bind(img_name, "<Button-1>", self._rout_img)
             _width_row, _height_row, _new_page, _new_row = self._get_coordinate_photo(_width_row, _height_row, size)
             if _max_height_row < _height_row + size[1]:
                 _max_height_row = _height_row + size[1]
@@ -153,38 +156,16 @@ class LoadTester(Tk):
         height = int(img.size[1] / img.size[0] * width)
         return width, height
 
-    def _create_image_table(
-        self,
-    ):
-        count = 0
-        if self._canvas_table is not None:
-            self._canvas_table.grid_remove()
-        _width = self._width_photo * self._last_obj.col + self._last_obj.col
-        self._canvas_table = Canvas(
-            self, bg="white", height=_width, width=_width, scrollregion=(0, 0, _width * 2, _width * 2)
-        )
-        self._canvas_table.grid(row=self.row_img_table, column=0, columnspan=4)
-        _height_row = 0
-        _height_row_after = 0
-        for row in range(self._last_obj.row):
-            for col in range(self._last_obj.col):
-                if count < len(self._last_obj.files):
-                    img = self._last_obj.files[count]
-                    size = self._width_photo, int(img.size[1] / img.size[0] * self._width_photo)
-                    if _height_row_after < _height_row + size[1]:
-                        _height_row_after = _height_row + size[1]
-                    img = img.resize(size)
-                    setattr(self, f"img_{count}", ImageTk.PhotoImage(img))
-                    self._canvas_table.create_image(
-                        col * size[0], _height_row, anchor=NW, image=getattr(self, f"img_{count}")
-                    )
-                    count += 1
-            _height_row = _height_row_after
-
     def _open_directory(self):
         f = filedialog.askdirectory()
         self._url_field.delete(0, END)
         self._url_field.insert(0, f)
+
+    @staticmethod
+    def _rout_img(events):
+        current = events.widget.find_withtag("current")[0]
+        tag_img = events.widget.itemconfig(current)["tags"][-1].split(" ")[0]
+        print(f"Вы кликнули по изображению №: {tag_img}")
 
 
 class ScrollableFrame(ttk.Frame):
