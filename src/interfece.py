@@ -108,9 +108,23 @@ class LoadTester(Tk):
             size = self._create_size_photo(img)
             img = img.resize(size)
             setattr(self, f"img_{count}", ImageTk.PhotoImage(img))
+            if _width_row + size[0] > 210:
+                _width_row = 0
+                _height_row = _max_height_row
+            if _height_row + size[1] > 297:
+                _max_height_row = 0
+                _width_row = 0
+                _height_row = 0
+                canvas = Canvas(f.scrollable_frame, bg="white", height=297, width=210)
+                canvas.grid(pady=10, padx=10)
             canvas.create_image(_width_row, _height_row, anchor=NW, image=getattr(self, f"img_{count}"))
-            _width_row, _height_row, _new_page = self._get_coordinate_photo(_width_row, _height_row, size)
+            _width_row, _height_row, _new_page, _new_row = self._get_coordinate_photo(_width_row, _height_row, size)
+            if _max_height_row < _height_row + size[1]:
+                _max_height_row = _height_row + size[1]
+            if _new_row:
+                _height_row = _max_height_row
             if _new_page:
+                _max_height_row = 0
                 canvas = Canvas(f.scrollable_frame, bg="white", height=297, width=210)
                 canvas.grid(pady=10, padx=10)
 
@@ -120,6 +134,7 @@ class LoadTester(Tk):
         _height_row = height_row
         _width_row = width_row
         _new_page = False
+        _new_row = False
         if _width_row + size[0] > 210 and _width_row > 0:
             _width_row = 0
             if _height_row + size[1] > 297 and _height_row > 0:
@@ -127,9 +142,10 @@ class LoadTester(Tk):
                 _new_page = True
             else:
                 _height_row = _height_row + size[1] + 10
+                _new_row = True
         else:
             _width_row = _width_row + size[0]
-        return _width_row, _height_row, _new_page
+        return _width_row, _height_row, _new_page, _new_row
 
     def _create_size_photo(self, img: ImageTk):
         """Формирование размера фотографии"""
