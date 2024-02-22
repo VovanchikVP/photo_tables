@@ -11,7 +11,10 @@ from tkinter import (
 )
 from typing import Optional
 
-from PIL import ImageTk
+from PIL import (
+    Image,
+    ImageTk,
+)
 
 from src.create_docx import CreateDocx
 from src.run_process import RunProcess
@@ -24,6 +27,7 @@ class LoadTester(Tk):
         self._refresh_ms = 25
         self.row_img_table = 5
         self._width_photo = 200
+        self.all_img: dict[str, CustomImg] = {}
         self._loop = loop
         self._load_test: Optional[CreateDocx] = None
         self._last_obj: Optional[CreateDocx] = None
@@ -106,8 +110,6 @@ class LoadTester(Tk):
         canvas.grid(pady=10, padx=10)
         for count, img in enumerate(self._last_obj.files):
             size = self._create_size_photo(img)
-            img = img.resize(size)
-            setattr(self, f"img_{count}", ImageTk.PhotoImage(img))
             if _width_row + size[0] > 210:
                 _width_row = 0
                 _height_row = _max_height_row
@@ -117,10 +119,16 @@ class LoadTester(Tk):
                 _height_row = 0
                 canvas = Canvas(f.scrollable_frame, bg="white", height=297, width=210)
                 canvas.grid(pady=10, padx=10)
-            img_name = canvas.create_image(
-                _width_row, _height_row, anchor=NW, image=getattr(self, f"img_{count}"), tag=f"img_{count}"
+            self.all_img[f"img_{count}"] = CustomImg(
+                canvas,
+                img,
+                self._width_photo,
+                int(self._request_field.get()),
+                _width_row,
+                _height_row,
+                count,
+                self._rout_img,
             )
-            canvas.tag_bind(img_name, "<Button-1>", self._rout_img)
             _width_row, _height_row, _new_page, _new_row = self._get_coordinate_photo(_width_row, _height_row, size)
             if _max_height_row < _height_row + size[1]:
                 _max_height_row = _height_row + size[1]
@@ -161,11 +169,65 @@ class LoadTester(Tk):
         self._url_field.delete(0, END)
         self._url_field.insert(0, f)
 
-    @staticmethod
-    def _rout_img(events):
+    def _rout_img(self, events):
         current = events.widget.find_withtag("current")[0]
-        tag_img = events.widget.itemconfig(current)["tags"][-1].split(" ")[0]
+        tag_img = str(events.widget.itemconfig(current)["tags"][-1].split(" ")[0])
         print(f"Вы кликнули по изображению №: {tag_img}")
+        self.all_img[tag_img].rotation()
+
+
+class PhotoPage:
+    """Страница с фотографиями"""
+
+
+class PhotoRow:
+    """Строка с изображениями"""
+
+    def __init__(self, canvas: Canvas, length: int):
+        pass
+
+
+class CustomImg:
+    def __init__(
+        self,
+        canvas: Canvas,
+        img: Image,
+        width: int,
+        max_img_in_row: int,
+        width_row: int,
+        height_row: int,
+        count: int,
+        callback,
+    ):
+        self.canvas = canvas
+        self.img = img
+        self.width = width
+        self.max_img_in_row = max_img_in_row
+        self.width_row = width_row
+        self.height_row = height_row
+        self.tag = f"img_{count}"
+        self.callback = callback
+        self.img_in_doc = self._create_img_in_docs()
+        self.tk_img = ImageTk.PhotoImage(self.img_in_doc)
+        self.add_img_in_canvas()
+
+    def _create_img_in_docs(self) -> Image:
+        """Формирование размера фотографии"""
+        width = int(self.width / self.max_img_in_row)
+        height = int(self.img.size[1] / self.img.size[0] * width)
+        return self.img.resize((width, height))
+
+    def rotation(self):
+        """Поворот изображения на 90 градусов"""
+        self.img = self.img.rotate(90, expand=1)
+        self.img_in_doc = self._create_img_in_docs()
+        self.tk_img = ImageTk.PhotoImage(self.img_in_doc)
+        self.add_img_in_canvas()
+
+    def add_img_in_canvas(self):
+        """Добавление изображения на канвас"""
+        img_name = self.canvas.create_image(self.width_row, self.height_row, anchor=NW, image=self.tk_img, tag=self.tag)
+        self.canvas.tag_bind(img_name, "<Button-1>", self.callback)
 
 
 class ScrollableFrame(ttk.Frame):
