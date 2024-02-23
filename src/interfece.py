@@ -4,6 +4,7 @@ from tkinter import (
     NW,
     Canvas,
     Entry,
+    Frame,
     Label,
     Tk,
     filedialog,
@@ -17,7 +18,6 @@ from PIL import (
 )
 
 from src.create_docx import CreateDocx
-from src.run_process import RunProcess
 
 
 class LoadTester(Tk):
@@ -48,9 +48,6 @@ class LoadTester(Tk):
         self._pb_label.grid(column=0, row=3)
         self._pb = ttk.Progressbar(self, orient="horizontal", length=200, mode="determinate")
         self._pb.grid(column=1, row=3, columnspan=2)
-        self._run_ls = ttk.Button(self, text="Run LS", command=self._start_ls)
-        self._run_ls.grid(column=0, row=4)
-        self._canvas_table = None
 
     def _update_bar(self, pct: int):
         if pct == 100:
@@ -58,7 +55,6 @@ class LoadTester(Tk):
             self._load_test = None
             self._submit["text"] = "Сформировать"
             self._create_canvas()
-            # self._create_image_table()
         else:
             self._pb["value"] = pct
             self.after(self._refresh_ms, self._poll_queue)
@@ -93,76 +89,32 @@ class LoadTester(Tk):
             self._load_test = None
             self._submit["text"] = "Сформировать"
 
-    def _start_ls(self):
-        test = RunProcess(self._loop, ("ls",))
-        test.start()
-
     def _create_canvas(self):
         """Формирование канваса для фото таблицы"""
-        _height_row = 0
-        _width_row = 0
-        _max_height_row = 0
+        _photo_in_row = int(self._request_field.get())
         f = ScrollableFrame(self)
         f.grid(row=self.row_img_table, column=0, columnspan=4)
         f.configure(borderwidth=2, relief="raised")
         f.grid_propagate(False)
-        canvas = Canvas(f.scrollable_frame, bg="white", height=297, width=210)
-        canvas.grid(pady=10, padx=10)
+        canvas = PhotoPage(f.scrollable_frame, 210, 297)
+        row = PhotoRow(_photo_in_row)
         for count, img in enumerate(self._last_obj.files):
-            size = self._create_size_photo(img)
-            if _width_row + size[0] > 210:
-                _width_row = 0
-                _height_row = _max_height_row
-            if _height_row + size[1] > 297:
-                _max_height_row = 0
-                _width_row = 0
-                _height_row = 0
-                canvas = Canvas(f.scrollable_frame, bg="white", height=297, width=210)
-                canvas.grid(pady=10, padx=10)
-            self.all_img[f"img_{count}"] = CustomImg(
-                canvas,
-                img,
-                self._width_photo,
-                int(self._request_field.get()),
-                _width_row,
-                _height_row,
-                count,
-                self._rout_img,
-            )
-            _width_row, _height_row, _new_page, _new_row = self._get_coordinate_photo(_width_row, _height_row, size)
-            if _max_height_row < _height_row + size[1]:
-                _max_height_row = _height_row + size[1]
-            if _new_row:
-                _height_row = _max_height_row
-            if _new_page:
-                _max_height_row = 0
-                canvas = Canvas(f.scrollable_frame, bg="white", height=297, width=210)
-                canvas.grid(pady=10, padx=10)
-
-    @staticmethod
-    def _get_coordinate_photo(width_row, height_row, size) -> tuple:
-        """Вычисление координат фотографии на канвасе"""
-        _height_row = height_row
-        _width_row = width_row
-        _new_page = False
-        _new_row = False
-        if _width_row + size[0] > 210 and _width_row > 0:
-            _width_row = 0
-            if _height_row + size[1] > 297 and _height_row > 0:
-                _height_row = 0
-                _new_page = True
-            else:
-                _height_row = _height_row + size[1] + 10
-                _new_row = True
-        else:
-            _width_row = _width_row + size[0]
-        return _width_row, _height_row, _new_page, _new_row
-
-    def _create_size_photo(self, img: ImageTk):
-        """Формирование размера фотографии"""
-        width = int(self._width_photo / int(self._request_field.get()))
-        height = int(img.size[1] / img.size[0] * width)
-        return width, height
+            if not row.add(img, count, self._rout_img):
+                if not canvas.add(row):
+                    canvas.show()
+                    canvas = PhotoPage(f.scrollable_frame, 210, 297)
+                    canvas.add(row)
+                new_row = PhotoRow(_photo_in_row, before_row=row)
+                row.next_row = new_row
+                row = new_row
+                row.add(img, count, self._rout_img)
+            self.all_img[f"img_{count}"] = row.images[-1]
+        if not row.canvas:
+            if not canvas.add(row):
+                canvas.show()
+                canvas = PhotoPage(f.scrollable_frame, 210, 297)
+                canvas.add(row)
+            canvas.show()
 
     def _open_directory(self):
         f = filedialog.askdirectory()
@@ -176,46 +128,65 @@ class LoadTester(Tk):
         self.all_img[tag_img].rotation()
 
 
-class PhotoPage:
-    """Страница с фотографиями"""
-
-
 class PhotoRow:
     """Строка с изображениями"""
 
-    def __init__(self, canvas: Canvas, length: int):
-        pass
+    MAX_WIDTH_ROW = 200
+
+    def __init__(self, length: int, before_row=None, next_row=None):
+        self.before_row = before_row
+        self.next_row = next_row
+        self.row_position = None
+        self.canvas = None
+        self.photo_page: Optional["PhotoPage"] = None
+        self.length = length
+        self.img_width = int(self.MAX_WIDTH_ROW / self.length)
+        self.height = 0
+        self.images: list[CustomImg] = []
+
+    def add(self, img: Image, count: int, callback) -> bool:
+        """Добавление изображения в строку"""
+        if len(self.images) == self.length:
+            return False
+        img_cast = CustomImg(img, self.img_width, count, callback)
+        img_cast.photo_row = self
+        self.images.append(img_cast)
+        self.height = max([i.img_height for i in self.images])
+        return True
+
+    def add_row_in_canvas(self, canvas: Canvas = None, row_position: int = None):
+        """Добавление строки на канвас"""
+        self.canvas = canvas if canvas else self.canvas
+        self.row_position = row_position if row_position else self.row_position
+        for num, img in enumerate(self.images):
+            position_img_in_row = num * self.img_width
+            img.add_img_in_canvas(self.canvas, position_img_in_row, row_position)
 
 
 class CustomImg:
     def __init__(
         self,
-        canvas: Canvas,
         img: Image,
-        width: int,
-        max_img_in_row: int,
-        width_row: int,
-        height_row: int,
+        img_width: int,
         count: int,
         callback,
     ):
-        self.canvas = canvas
+        self.img_width = img_width
+        self.img_height = 0
+        self.canvas = None
+        self.photo_row: Optional[PhotoRow] = None
         self.img = img
-        self.width = width
-        self.max_img_in_row = max_img_in_row
-        self.width_row = width_row
-        self.height_row = height_row
+        self.width_row = None
+        self.height_row = None
         self.tag = f"img_{count}"
         self.callback = callback
         self.img_in_doc = self._create_img_in_docs()
         self.tk_img = ImageTk.PhotoImage(self.img_in_doc)
-        self.add_img_in_canvas()
 
     def _create_img_in_docs(self) -> Image:
         """Формирование размера фотографии"""
-        width = int(self.width / self.max_img_in_row)
-        height = int(self.img.size[1] / self.img.size[0] * width)
-        return self.img.resize((width, height))
+        self.img_height = int(self.img.size[1] / self.img.size[0] * self.img_width)
+        return self.img.resize((self.img_width, self.img_height))
 
     def rotation(self):
         """Поворот изображения на 90 градусов"""
@@ -224,8 +195,11 @@ class CustomImg:
         self.tk_img = ImageTk.PhotoImage(self.img_in_doc)
         self.add_img_in_canvas()
 
-    def add_img_in_canvas(self):
+    def add_img_in_canvas(self, canvas: Canvas = None, width_row: int = None, height_row: int = None):
         """Добавление изображения на канвас"""
+        self.canvas = canvas if canvas else self.canvas
+        self.width_row = self.width_row if width_row is None else width_row
+        self.height_row = self.height_row if height_row is None else height_row
         img_name = self.canvas.create_image(self.width_row, self.height_row, anchor=NW, image=self.tk_img, tag=self.tag)
         self.canvas.tag_bind(img_name, "<Button-1>", self.callback)
 
@@ -242,3 +216,31 @@ class ScrollableFrame(ttk.Frame):
         canvas.grid(row=5, column=0, columnspan=4)
         scrollbar.grid(row=5, column=5)
         canvas.update_idletasks()
+
+
+class PhotoPage:
+    """Страница с фотографиями"""
+
+    def __init__(self, root: Frame, width: int, height: int):
+        self.width = width
+        self.height = height
+        self.content_height = 0
+        self.canvas = Canvas(root, bg="white", height=height, width=width)
+        self.canvas.grid(pady=10, padx=10)
+        self.rows: list[PhotoRow] = []
+
+    def add(self, row: PhotoRow) -> bool:
+        """Добавление строки"""
+        if row.height + self.content_height > self.height:
+            return False
+        self.rows.append(row)
+        self.content_height += row.height
+        row.photo_page = self
+        return True
+
+    def show(self):
+        """Отображение данных канваса"""
+        height = 0
+        for num, row in enumerate(self.rows):
+            row.add_row_in_canvas(self.canvas, height)
+            height += row.height
