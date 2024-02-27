@@ -134,8 +134,8 @@ class PhotoRow:
     MAX_WIDTH_ROW = 200
 
     def __init__(self, length: int, before_row=None, next_row=None):
-        self.before_row = before_row
-        self.next_row = next_row
+        self.before_row: Optional["PhotoRow"] = before_row
+        self.next_row: Optional["PhotoRow"] = next_row
         self.row_position = None
         self.canvas = None
         self.photo_page: Optional["PhotoPage"] = None
@@ -151,16 +151,29 @@ class PhotoRow:
         img_cast = CustomImg(img, self.img_width, count, callback)
         img_cast.photo_row = self
         self.images.append(img_cast)
-        self.height = max([i.img_height for i in self.images])
+        self.calculation_height()
         return True
 
-    def add_row_in_canvas(self, canvas: Canvas = None, row_position: int = None):
+    def add_row_in_canvas(self, canvas: Canvas = None, row_position: int = None) -> None:
         """Добавление строки на канвас"""
         self.canvas = canvas if canvas else self.canvas
         self.row_position = row_position if row_position else self.row_position
         for num, img in enumerate(self.images):
             position_img_in_row = num * self.img_width
-            img.add_img_in_canvas(self.canvas, position_img_in_row, row_position)
+            img.add_img_in_canvas(self.canvas, position_img_in_row, self.row_position)
+
+    def calculation_height(self) -> None:
+        new_height = max([i.img_height for i in self.images])
+        if self.height != new_height:
+            self.height = new_height
+            if self.photo_page is not None:
+                if self.before_row is not None and self.before_row.photo_page == self.photo_page:
+                    self.change_position()
+                if self.next_row is not None:
+                    self.next_row.change_position()
+
+    def change_position(self):
+        """Изменение позиции следующей строки"""
 
 
 class CustomImg:
