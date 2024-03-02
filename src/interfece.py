@@ -101,20 +101,25 @@ class LoadTester(Tk):
         for count, img in enumerate(self._last_obj.files):
             if not row.add(img, count, self._rout_img):
                 if not canvas.add(row):
-                    canvas.show()
-                    canvas = PhotoPage(f.scrollable_frame, 210, 297)
-                    canvas.add(row)
+                    canvas = self._add_row_in_new_page(f.scrollable_frame, canvas, row)
                 new_row = PhotoRow(_photo_in_row, before_row=row)
                 row.next_row = new_row
                 row = new_row
                 row.add(img, count, self._rout_img)
             self.all_img[f"img_{count}"] = row.images[-1]
-        if not row.canvas:
+        if not row.photo_page:
             if not canvas.add(row):
-                canvas.show()
-                canvas = PhotoPage(f.scrollable_frame, 210, 297)
-                canvas.add(row)
+                canvas = self._add_row_in_new_page(f.scrollable_frame, canvas, row)
             canvas.show()
+
+    @staticmethod
+    def _add_row_in_new_page(root: Frame, canvas: "PhotoPage", row: "PhotoRow") -> "PhotoPage":
+        """Добавление строки на новую страницу"""
+        canvas.show()
+        new_canvas = PhotoPage(root, 210, 297, before_page=canvas)
+        canvas.next_page = new_canvas
+        new_canvas.add(row)
+        return new_canvas
 
     def _open_directory(self):
         f = filedialog.askdirectory()
@@ -137,7 +142,6 @@ class PhotoRow:
         self.before_row: Optional["PhotoRow"] = before_row
         self.next_row: Optional["PhotoRow"] = next_row
         self.row_position = None
-        self.canvas = None
         self.photo_page: Optional["PhotoPage"] = None
         self.length = length
         self.img_width = int(self.MAX_WIDTH_ROW / self.length)
@@ -154,26 +158,22 @@ class PhotoRow:
         self.calculation_height()
         return True
 
-    def add_row_in_canvas(self, canvas: Canvas = None, row_position: int = None) -> None:
+    def add_row_in_canvas(self, photo_page: "PhotoPage" = None, row_position: int = None) -> None:
         """Добавление строки на канвас"""
-        self.canvas = canvas if canvas else self.canvas
-        self.row_position = row_position if row_position else self.row_position
+        self.photo_page = photo_page if photo_page is not None else self.photo_page
+        self.row_position = row_position if row_position is not None else self.row_position
         for num, img in enumerate(self.images):
             position_img_in_row = num * self.img_width
-            img.add_img_in_canvas(self.canvas, position_img_in_row, self.row_position)
+            img.add_img_in_canvas(self.photo_page, position_img_in_row, self.row_position)
 
-    def calculation_height(self) -> None:
+    def calculation_height(self) -> bool:
         new_height = max([i.img_height for i in self.images])
         if self.height != new_height:
             self.height = new_height
             if self.photo_page is not None:
-                if self.before_row is not None and self.before_row.photo_page == self.photo_page:
-                    self.change_position()
-                if self.next_row is not None:
-                    self.next_row.change_position()
-
-    def change_position(self):
-        """Изменение позиции следующей строки"""
+                self.photo_page.change_rows([self])
+            return True
+        return False
 
 
 class CustomImg:
@@ -186,7 +186,7 @@ class CustomImg:
     ):
         self.img_width = img_width
         self.img_height = 0
-        self.canvas = None
+        self.page: Optional["PhotoPage"] = None
         self.photo_row: Optional[PhotoRow] = None
         self.img = img
         self.width_row = None
@@ -206,15 +206,18 @@ class CustomImg:
         self.img = self.img.rotate(90, expand=1)
         self.img_in_doc = self._create_img_in_docs()
         self.tk_img = ImageTk.PhotoImage(self.img_in_doc)
-        self.add_img_in_canvas()
+        if not self.photo_row.calculation_height():
+            self.add_img_in_canvas()
 
-    def add_img_in_canvas(self, canvas: Canvas = None, width_row: int = None, height_row: int = None):
+    def add_img_in_canvas(self, page: "PhotoPage" = None, width_row: int = None, height_row: int = None):
         """Добавление изображения на канвас"""
-        self.canvas = canvas if canvas else self.canvas
+        self.page = page if page else self.page
         self.width_row = self.width_row if width_row is None else width_row
         self.height_row = self.height_row if height_row is None else height_row
-        img_name = self.canvas.create_image(self.width_row, self.height_row, anchor=NW, image=self.tk_img, tag=self.tag)
-        self.canvas.tag_bind(img_name, "<Button-1>", self.callback)
+        img_name = self.page.canvas.create_image(
+            self.width_row, self.height_row, anchor=NW, image=self.tk_img, tag=self.tag
+        )
+        self.page.canvas.tag_bind(img_name, "<Button-1>", self.callback)
 
 
 class ScrollableFrame(ttk.Frame):
@@ -234,9 +237,19 @@ class ScrollableFrame(ttk.Frame):
 class PhotoPage:
     """Страница с фотографиями"""
 
-    def __init__(self, root: Frame, width: int, height: int):
+    def __init__(
+        self,
+        root: Frame,
+        width: int,
+        height: int,
+        before_page: Optional["PhotoPage"] = None,
+        next_page: Optional["PhotoPage"] = None,
+    ):
         self.width = width
         self.height = height
+        self.before_page = before_page
+        self.root = root
+        self.next_page = next_page
         self.content_height = 0
         self.canvas = Canvas(root, bg="white", height=height, width=width)
         self.canvas.grid(pady=10, padx=10)
@@ -251,9 +264,44 @@ class PhotoPage:
         row.photo_page = self
         return True
 
+    def change_rows(self, rows: list[PhotoRow]):
+        """Изменение набора строк на странице"""
+        if not rows:
+            return None
+        rows_in_next_page = []
+        all_rows = []
+        index = 0
+        for row in rows:
+            if row in self.rows:
+                index = self.rows.index(row) + 1
+                all_rows = self.rows[:index]
+            else:
+                if all_rows:
+                    all_rows.append(row)
+                else:
+                    all_rows = rows + self.rows
+                    break
+        else:
+            if len(all_rows) < len(self.rows):
+                all_rows += self.rows[index:]
+        self.rows = []
+        self.content_height = 0
+        for num, r in enumerate(all_rows):
+            if self.add(r):
+                continue
+            else:
+                rows_in_next_page = all_rows[num:]
+                break
+        self.show()
+        if self.next_page is None and rows_in_next_page:
+            next_page = PhotoPage(self.root, self.width, self.height, before_page=self)
+            self.next_page = next_page
+        if self.next_page is not None:
+            self.next_page.change_rows(rows_in_next_page)
+
     def show(self):
         """Отображение данных канваса"""
         height = 0
         for num, row in enumerate(self.rows):
-            row.add_row_in_canvas(self.canvas, height)
+            row.add_row_in_canvas(self, height)
             height += row.height
