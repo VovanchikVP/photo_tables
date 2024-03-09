@@ -6,6 +6,7 @@ from tkinter import (
     Entry,
     Frame,
     Label,
+    N,
     Tk,
     filedialog,
     ttk,
@@ -167,7 +168,7 @@ class PhotoRow:
             img.add_img_in_canvas(self.photo_page, position_img_in_row, self.row_position)
 
     def calculation_height(self) -> None:
-        new_height = max([i.img_height for i in self.images])
+        new_height = max([i.all_height for i in self.images])
         if self.height != new_height:
             self.height = new_height
             if self.photo_page:
@@ -195,6 +196,8 @@ class PhotoRow:
 
 
 class CustomImg:
+    FONT = ("Times", "8", "italic")
+
     def __init__(
         self,
         img: Image,
@@ -204,20 +207,36 @@ class CustomImg:
     ):
         self.img_width = img_width
         self.img_height = 0
+        self.img_name_height = 20
         self.page: Optional["PhotoPage"] = None
         self.photo_row: Optional[PhotoRow] = None
         self.img = img
+        self.file_name = self.img.filename.split("/")[-1]
         self.width_row = None
         self.height_row = None
+        self.text_width = None
         self.tag = f"img_{count}"
+        self.text_item = None
         self.callback = callback
         self.img_in_doc = self._create_img_in_docs()
         self.tk_img = ImageTk.PhotoImage(self.img_in_doc)
+        self._calculation_text_obj_height()
+
+    @property
+    def all_height(self) -> int:
+        return self.img_height + self.text_width
 
     def _create_img_in_docs(self) -> Image:
         """Формирование размера фотографии"""
         self.img_height = int(self.img.size[1] / self.img.size[0] * self.img_width)
         return self.img.resize((self.img_width, self.img_height))
+
+    def _calculation_text_obj_height(self) -> None:
+        """Вычисление высоты текста"""
+        test_canvas = Canvas(bg="white", height=1000, width=1000)
+        item = test_canvas.create_text(0, 0, text=self.file_name, width=self.img_width - 6, anchor=N, font=self.FONT)
+        text_box = test_canvas.bbox(item)
+        self.text_width = text_box[-1] - text_box[1]
 
     def rotation(self):
         """Поворот изображения на 90 градусов"""
@@ -235,19 +254,27 @@ class CustomImg:
             self.width_row, self.height_row, anchor=NW, image=self.tk_img, tag=self.tag
         )
         self.page.canvas.tag_bind(img_name, "<Button-1>", self.callback)
+        self.text_item = self.page.canvas.create_text(
+            self.width_row + self.img_width / 2,
+            self.height_row + self.img_height,
+            text=self.file_name,
+            width=self.img_width - 6,
+            anchor=N,
+            font=self.FONT,
+        )
 
 
 class ScrollableFrame(ttk.Frame):
     def __init__(self, container, *args, **kwargs):
         super().__init__(container, *args, **kwargs)
-        canvas = Canvas(self)
+        canvas = Canvas(self, width=300, height=600)
         scrollbar = ttk.Scrollbar(self, orient="vertical", command=canvas.yview)
         self.scrollable_frame = ttk.Frame(canvas)
         self.scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
         canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.grid(row=5, column=0, columnspan=4)
-        scrollbar.grid(row=5, column=5)
+        scrollbar.grid(row=5, column=5, sticky="ns")
         canvas.update_idletasks()
 
 
@@ -269,7 +296,7 @@ class PhotoPage:
         self.next_page = next_page
         self.content_height = 0
         self.canvas = Canvas(root, bg="white", height=height, width=width)
-        self.canvas.grid(pady=10, padx=10)
+        self.canvas.grid(pady=10, padx=45)
         self.rows: list[PhotoRow] = []
 
     def add(self, row: PhotoRow) -> bool:
