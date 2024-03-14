@@ -163,11 +163,12 @@ class PhotoRow:
         """Добавление строки на канвас"""
         self.photo_page = photo_page if photo_page is not None else self.photo_page
         self.row_position = row_position if row_position is not None else self.row_position
+        pad = int((self.photo_page.width - self.MAX_WIDTH_ROW) / 2)
         for num, img in enumerate(self.images):
-            position_img_in_row = num * self.img_width
+            position_img_in_row = num * self.img_width + pad
             img.add_img_in_canvas(self.photo_page, position_img_in_row, self.row_position)
 
-    def calculation_height(self) -> None:
+    def calculation_height(self) -> bool:
         new_height = max([i.all_height for i in self.images])
         if self.height != new_height:
             self.height = new_height
@@ -193,6 +194,9 @@ class PhotoRow:
                         page.canvas.destroy()
                         del page
                     page = new_page
+            return True
+        else:
+            return False
 
 
 class CustomImg:
@@ -217,6 +221,7 @@ class CustomImg:
         self.text_width = None
         self.tag = f"img_{count}"
         self.text_item = None
+        self.img_item = None
         self.callback = callback
         self.img_in_doc = self._create_img_in_docs()
         self.tk_img = ImageTk.PhotoImage(self.img_in_doc)
@@ -224,7 +229,7 @@ class CustomImg:
 
     @property
     def all_height(self) -> int:
-        return self.img_height + self.text_width
+        return self.img_height + self.text_width + 2
 
     def _create_img_in_docs(self) -> Image:
         """Формирование размера фотографии"""
@@ -237,23 +242,27 @@ class CustomImg:
         item = test_canvas.create_text(0, 0, text=self.file_name, width=self.img_width - 6, anchor=N, font=self.FONT)
         text_box = test_canvas.bbox(item)
         self.text_width = text_box[-1] - text_box[1]
+        test_canvas.destroy()
 
     def rotation(self):
         """Поворот изображения на 90 градусов"""
         self.img = self.img.rotate(90, expand=1)
         self.img_in_doc = self._create_img_in_docs()
         self.tk_img = ImageTk.PhotoImage(self.img_in_doc)
-        self.photo_row.calculation_height()
+        if not self.photo_row.calculation_height():
+            self.page.canvas.delete(self.img_item)
+            self.page.canvas.delete(self.text_item)
+            self.add_img_in_canvas()
 
     def add_img_in_canvas(self, page: "PhotoPage" = None, width_row: int = None, height_row: int = None):
         """Добавление изображения на канвас"""
         self.page = page if page else self.page
         self.width_row = self.width_row if width_row is None else width_row
         self.height_row = self.height_row if height_row is None else height_row
-        img_name = self.page.canvas.create_image(
+        self.img_item = self.page.canvas.create_image(
             self.width_row, self.height_row, anchor=NW, image=self.tk_img, tag=self.tag
         )
-        self.page.canvas.tag_bind(img_name, "<Button-1>", self.callback)
+        self.page.canvas.tag_bind(self.img_item, "<Button-1>", self.callback)
         self.text_item = self.page.canvas.create_text(
             self.width_row + self.img_width / 2,
             self.height_row + self.img_height,
