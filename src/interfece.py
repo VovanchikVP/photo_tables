@@ -100,13 +100,13 @@ class LoadTester(Tk):
         canvas = PhotoPage(f.scrollable_frame, 210, 297)
         row = PhotoRow(_photo_in_row)
         for count, img in enumerate(self._last_obj.files):
-            if not row.add(img, count, self._rout_img):
+            if not row.add(img, count, self._callbacks()):
                 if not canvas.add(row):
                     canvas = self._add_row_in_new_page(f.scrollable_frame, canvas, row)
                 new_row = PhotoRow(_photo_in_row, before_row=row)
                 row.next_row = new_row
                 row = new_row
-                row.add(img, count, self._rout_img)
+                row.add(img, count, self._callbacks())
             self.all_img[f"img_{count}"] = row.images[-1]
         if not row.photo_page:
             if not canvas.add(row):
@@ -133,6 +133,19 @@ class LoadTester(Tk):
         print(f"Вы кликнули по изображению №: {tag_img}")
         self.all_img[tag_img].rotation()
 
+    def _del_img(self, events):
+        current = events.widget.find_withtag("current")[0]
+        tag_img = str(events.widget.itemconfig(current)["tags"][-1].split(" ")[0])
+        print(f"Вы кликнули по изображению №: {tag_img}")
+        self.all_img[tag_img].delete()
+
+    def _callbacks(self) -> dict:
+        """Функции обратного вызова"""
+        return {
+            "<Button-1>": self._rout_img,
+            "<Button-2>": self._del_img,
+        }
+
 
 class PhotoRow:
     """Строка с изображениями"""
@@ -149,11 +162,11 @@ class PhotoRow:
         self.height = 0
         self.images: list[CustomImg] = []
 
-    def add(self, img: Image, count: int, callback) -> bool:
+    def add(self, img: Image, count: int, callbacks: dict) -> bool:
         """Добавление изображения в строку"""
         if len(self.images) == self.length:
             return False
-        img_cast = CustomImg(img, self.img_width, count, callback)
+        img_cast = CustomImg(img, self.img_width, count, callbacks)
         img_cast.photo_row = self
         self.images.append(img_cast)
         self.calculation_height()
@@ -207,7 +220,7 @@ class CustomImg:
         img: Image,
         img_width: int,
         count: int,
-        callback,
+        callbacks: dict,
     ):
         self.img_width = img_width
         self.img_height = 0
@@ -222,7 +235,7 @@ class CustomImg:
         self.tag = f"img_{count}"
         self.text_item = None
         self.img_item = None
-        self.callback = callback
+        self.callback = callbacks
         self.img_in_doc = self._create_img_in_docs()
         self.tk_img = ImageTk.PhotoImage(self.img_in_doc)
         self._calculation_text_obj_height()
@@ -254,6 +267,11 @@ class CustomImg:
             self.page.canvas.delete(self.text_item)
             self.add_img_in_canvas()
 
+    def delete(self):
+        """Удаление изображения"""
+        self.page.canvas.delete(self.img_item)
+        self.page.canvas.delete(self.text_item)
+
     def add_img_in_canvas(self, page: "PhotoPage" = None, width_row: int = None, height_row: int = None):
         """Добавление изображения на канвас"""
         self.page = page if page else self.page
@@ -262,7 +280,8 @@ class CustomImg:
         self.img_item = self.page.canvas.create_image(
             self.width_row, self.height_row, anchor=NW, image=self.tk_img, tag=self.tag
         )
-        self.page.canvas.tag_bind(self.img_item, "<Button-1>", self.callback)
+        for key, foo in self.callback.items():
+            self.page.canvas.tag_bind(self.img_item, key, foo)
         self.text_item = self.page.canvas.create_text(
             self.width_row + self.img_width / 2,
             self.height_row + self.img_height,
@@ -270,6 +289,7 @@ class CustomImg:
             width=self.img_width - 6,
             anchor=N,
             font=self.FONT,
+            fill="black",
         )
 
 
