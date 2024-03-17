@@ -49,6 +49,8 @@ class LoadTester(Tk):
         self._pb_label.grid(column=0, row=3)
         self._pb = ttk.Progressbar(self, orient="horizontal", length=200, mode="determinate")
         self._pb.grid(column=1, row=3, columnspan=2)
+        self.bind_all("<BackSpace>", self._del_img)
+        self.bind_all("<Delete>", self._del_img)
 
     def _update_bar(self, pct: int):
         if pct == 100:
@@ -130,20 +132,27 @@ class LoadTester(Tk):
     def _rout_img(self, events):
         current = events.widget.find_withtag("current")[0]
         tag_img = str(events.widget.itemconfig(current)["tags"][-1].split(" ")[0])
-        print(f"Вы кликнули по изображению №: {tag_img}")
+        print(f"Вы повернули изображение №: {tag_img}")
         self.all_img[tag_img].rotation()
 
     def _del_img(self, events):
         current = events.widget.find_withtag("current")[0]
         tag_img = str(events.widget.itemconfig(current)["tags"][-1].split(" ")[0])
-        print(f"Вы кликнули по изображению №: {tag_img}")
-        self.all_img[tag_img].delete()
+        print(f"Вы удалили изображение №: {tag_img}")
+        del self._last_obj.files[int(tag_img.split("_")[-1])]
+        self._create_canvas()
+
+    def _press_key(self, events):
+        current = events.widget.find_withtag("current")[0]
+        tag_img = str(events.widget.itemconfig(current)["tags"][-1].split(" ")[0])
+        self.all_img[tag_img].test(events)
 
     def _callbacks(self) -> dict:
         """Функции обратного вызова"""
         return {
             "<Button-1>": self._rout_img,
-            "<Button-2>": self._del_img,
+            "<Enter>": self._press_key,
+            "<Leave>": lambda event: self.focus_set(),
         }
 
 
@@ -267,10 +276,13 @@ class CustomImg:
             self.page.canvas.delete(self.text_item)
             self.add_img_in_canvas()
 
-    def delete(self):
+    def test(self, events):
         """Удаление изображения"""
-        self.page.canvas.delete(self.img_item)
-        self.page.canvas.delete(self.text_item)
+        self.page.canvas.focus_set()
+        element_ids = self.page.canvas.find_withtag("current")
+        self.page.canvas.focus(element_ids)
+        if element_ids:
+            print("Key pressed over element:", element_ids)
 
     def add_img_in_canvas(self, page: "PhotoPage" = None, width_row: int = None, height_row: int = None):
         """Добавление изображения на канвас"""
