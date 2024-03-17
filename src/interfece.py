@@ -51,6 +51,9 @@ class LoadTester(Tk):
         self._pb.grid(column=1, row=3, columnspan=2)
         self.bind_all("<BackSpace>", self._del_img)
         self.bind_all("<Delete>", self._del_img)
+        self.bind_all("<Left>", self._rout_img)
+        self.bind_all("<Right>", self._rout_img)
+        # self.bind_all("<KeyPress>", lambda e: print(e))
 
     def _update_bar(self, pct: int):
         if pct == 100:
@@ -133,7 +136,7 @@ class LoadTester(Tk):
         current = events.widget.find_withtag("current")[0]
         tag_img = str(events.widget.itemconfig(current)["tags"][-1].split(" ")[0])
         print(f"Вы повернули изображение №: {tag_img}")
-        self.all_img[tag_img].rotation()
+        self.all_img[tag_img].rotation(events)
 
     def _del_img(self, events):
         current = events.widget.find_withtag("current")[0]
@@ -150,7 +153,6 @@ class LoadTester(Tk):
     def _callbacks(self) -> dict:
         """Функции обратного вызова"""
         return {
-            "<Button-1>": self._rout_img,
             "<Enter>": self._press_key,
             "<Leave>": lambda event: self.focus_set(),
         }
@@ -266,9 +268,14 @@ class CustomImg:
         self.text_width = text_box[-1] - text_box[1]
         test_canvas.destroy()
 
-    def rotation(self):
+    def rotation(self, events):
         """Поворот изображения на 90 градусов"""
-        self.img = self.img.rotate(90, expand=1)
+        if events.keysym == "Right":
+            self.img = self.img.rotate(90, expand=1)
+        elif events.keysym == "Left":
+            self.img = self.img.rotate(-90, expand=1)
+        else:
+            self.img = self.img.rotate(90, expand=1)
         self.img_in_doc = self._create_img_in_docs()
         self.tk_img = ImageTk.PhotoImage(self.img_in_doc)
         if not self.photo_row.calculation_height():
