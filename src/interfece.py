@@ -51,8 +51,11 @@ class LoadTester(Tk):
         self._pb.grid(column=1, row=3, columnspan=2)
         self.bind_all("<BackSpace>", self._del_img)
         self.bind_all("<Delete>", self._del_img)
-        self.bind_all("<Left>", self._rout_img)
-        self.bind_all("<Right>", self._rout_img)
+        self.bind_all("<r>", self._rout_img)
+        self.bind_all("<Up>", self._move_img)
+        self.bind_all("<Down>", self._move_img)
+        self.bind_all("<Left>", self._move_img)
+        self.bind_all("<Right>", self._move_img)
         # self.bind_all("<KeyPress>", lambda e: print(e))
 
     def _update_bar(self, pct: int):
@@ -138,6 +141,42 @@ class LoadTester(Tk):
         print(f"Вы повернули изображение №: {tag_img}")
         self.all_img[tag_img].rotation(events)
 
+    def _move_img(self, events):
+        """Перемещение изображения в канвасе"""
+        current = events.widget.find_withtag("current")[0]
+        tag_img = str(events.widget.itemconfig(current)["tags"][-1].split(" ")[0])
+        num = int(tag_img.split("_")[-1])
+        obj = self._last_obj.files.pop(num)
+        _photo_in_row = int(self._request_field.get())
+        if events.keysym == "Left":
+            if not num:
+                self._last_obj.files.append(obj)
+            else:
+                self._last_obj.files.insert(num - 1, obj)
+        elif events.keysym == "Right":
+            if num == len(self._last_obj.files):
+                self._last_obj.files.insert(0, obj)
+            else:
+                self._last_obj.files.insert(num + 1, obj)
+        elif events.keysym == "Up":
+            new_position = num - _photo_in_row
+            if new_position >= 0:
+                self._last_obj.files.insert(new_position, obj)
+            else:
+                new_position = (new_position + 1) * -1
+                if new_position:
+                    self._last_obj.files.insert(len(self._last_obj.files) - new_position, obj)
+                else:
+                    self._last_obj.files.append(obj)
+        elif events.keysym == "Down":
+            new_position = num + _photo_in_row
+            if new_position <= len(self._last_obj.files):
+                self._last_obj.files.insert(new_position, obj)
+            else:
+                new_position = new_position - len(self._last_obj.files) - 1
+                self._last_obj.files.insert(new_position, obj)
+        self._create_canvas()
+
     def _del_img(self, events):
         current = events.widget.find_withtag("current")[0]
         tag_img = str(events.widget.itemconfig(current)["tags"][-1].split(" ")[0])
@@ -150,11 +189,18 @@ class LoadTester(Tk):
         tag_img = str(events.widget.itemconfig(current)["tags"][-1].split(" ")[0])
         self.all_img[tag_img].test(events)
 
+    def _move(self, events):
+        """Перемещение картинки"""
+        current = events.widget.find_withtag("current")[0]
+        tag_img = str(events.widget.itemconfig(current)["tags"][-1].split(" ")[0])
+        self.all_img[tag_img].move(events)
+
     def _callbacks(self) -> dict:
         """Функции обратного вызова"""
         return {
             "<Enter>": self._press_key,
             "<Leave>": lambda event: self.focus_set(),
+            # "<B1-Motion>": self._move,
         }
 
 
@@ -290,6 +336,11 @@ class CustomImg:
         self.page.canvas.focus(element_ids)
         if element_ids:
             print("Key pressed over element:", element_ids)
+
+    def move(self, events):
+        """Перемещение картинки"""
+        self.page.canvas.moveto(self.img_item, events.x, events.y)
+        self.page.canvas.moveto(self.text_item, events.x - 3, events.y + self.img_height)
 
     def add_img_in_canvas(self, page: "PhotoPage" = None, width_row: int = None, height_row: int = None):
         """Добавление изображения на канвас"""

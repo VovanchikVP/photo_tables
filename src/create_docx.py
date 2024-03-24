@@ -33,7 +33,7 @@ class CreateDocx:
         self._all_files = len(self._all_file_names)
         self.col = col
         self.row: Optional[int] = None
-        self.files: Optional[Image] = None
+        self.files: Optional[list[Image]] = None
         self._loop = loop
         self._callback = callback
 
