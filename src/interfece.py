@@ -138,7 +138,6 @@ class LoadTester(Tk):
     def _rout_img(self, events):
         current = events.widget.find_withtag("current")[0]
         tag_img = str(events.widget.itemconfig(current)["tags"][-1].split(" ")[0])
-        print(f"Вы повернули изображение №: {tag_img}")
         self.all_img[tag_img].rotation(events)
 
     def _move_img(self, events):
@@ -184,10 +183,15 @@ class LoadTester(Tk):
         del self._last_obj.files[int(tag_img.split("_")[-1])]
         self._create_canvas()
 
-    def _press_key(self, events):
+    def _add_border(self, events):
         current = events.widget.find_withtag("current")[0]
         tag_img = str(events.widget.itemconfig(current)["tags"][-1].split(" ")[0])
-        self.all_img[tag_img].test(events)
+        self.all_img[tag_img].add_border(events)
+
+    def _remove_border(self, events):
+        current = events.widget.find_withtag("current")[0]
+        tag_img = str(events.widget.itemconfig(current)["tags"][-1].split(" ")[0])
+        self.all_img[tag_img].drop_border(events)
 
     def _move(self, events):
         """Перемещение картинки"""
@@ -198,9 +202,8 @@ class LoadTester(Tk):
     def _callbacks(self) -> dict:
         """Функции обратного вызова"""
         return {
-            "<Enter>": self._press_key,
-            "<Leave>": lambda event: self.focus_set(),
-            # "<B1-Motion>": self._move,
+            "<Enter>": self._add_border,
+            "<Leave>": self._remove_border,
         }
 
 
@@ -289,6 +292,7 @@ class CustomImg:
         self.width_row = None
         self.height_row = None
         self.text_width = None
+        self.border = None
         self.tag = f"img_{count}"
         self.text_item = None
         self.img_item = None
@@ -329,13 +333,26 @@ class CustomImg:
             self.page.canvas.delete(self.text_item)
             self.add_img_in_canvas()
 
-    def test(self, events):
+    def add_border(self, events):
         """Удаление изображения"""
         self.page.canvas.focus_set()
         element_ids = self.page.canvas.find_withtag("current")
         self.page.canvas.focus(element_ids)
-        if element_ids:
-            print("Key pressed over element:", element_ids)
+        x, y = self.page.canvas.coords(element_ids[0])
+        self.create_border(x, y)
+
+    def create_border(self, x: float, y: float):
+        """Формирование прямоугольник"""
+        if self.border is None:
+            self.border = self.page.canvas.create_rectangle(
+                x - 1, y - 1, x + self.img_width, y + self.img_height, outline="red"
+            )
+            self.page.canvas.tag_lower(self.border)
+
+    def drop_border(self, events):
+        if self.border is not None:
+            self.page.canvas.delete(self.border)
+            self.border = None
 
     def move(self, events):
         """Перемещение картинки"""
