@@ -18,6 +18,7 @@ class CreateDocx:
 
     PHOTO_DIR_DEFAULT: Path = Path(__file__).parents[1] / Path("photo")
     SUPPORTED_FORMATS: list = ["jpg", "png"]
+    OUTPUT: Path = Path(__file__).parents[1] / Path("demo.docx")
 
     def __init__(
         self,
@@ -44,8 +45,9 @@ class CreateDocx:
         if self._load_test_future:
             self._loop.call_soon_threadsafe(self._load_test_future.cancel)
 
-    def save(self, output: str):
+    def save(self, output: str = None):
         """Сохранение данных в файл"""
+        output = self.OUTPUT if output is None else output
         doc = Document()
         table = doc.add_table(self.row, self.col)
         img_index = 0

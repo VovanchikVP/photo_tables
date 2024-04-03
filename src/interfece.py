@@ -45,6 +45,8 @@ class LoadTester(Tk):
         self._request_field.grid(column=1, row=1)
         self._submit = ttk.Button(self, text="Сформировать", command=self._start)
         self._submit.grid(column=2, row=1)
+        self._submit = ttk.Button(self, text="Сохранить", command=self._save)
+        self._submit.grid(column=3, row=1)
         self._pb_label = Label(self, text="Progress:")
         self._pb_label.grid(column=0, row=3)
         self._pb = ttk.Progressbar(self, orient="horizontal", length=200, mode="determinate")
@@ -97,6 +99,10 @@ class LoadTester(Tk):
             self._load_test.cancel()
             self._load_test = None
             self._submit["text"] = "Сформировать"
+
+    def _save(self):
+        """Сохранение результатов в Документе word"""
+        self._last_obj.save()
 
     def _create_canvas(self):
         """Формирование канваса для фото таблицы"""
