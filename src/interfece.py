@@ -113,14 +113,14 @@ class LoadTester(Tk):
         f.grid_propagate(False)
         canvas = PhotoPage(f.scrollable_frame, 210, 297)
         row = PhotoRow(_photo_in_row)
-        for count, img in enumerate(self._last_obj.files):
-            if not row.add(img, count, self._callbacks()):
+        for count in range(len(self._last_obj.files)):
+            if not row.add(self._last_obj.files, count, self._callbacks()):
                 if not canvas.add(row):
                     canvas = self._add_row_in_new_page(f.scrollable_frame, canvas, row)
                 new_row = PhotoRow(_photo_in_row, before_row=row)
                 row.next_row = new_row
                 row = new_row
-                row.add(img, count, self._callbacks())
+                row.add(self._last_obj.files, count, self._callbacks())
             self.all_img[f"img_{count}"] = row.images[-1]
         if not row.photo_page:
             if not canvas.add(row):
@@ -228,11 +228,11 @@ class PhotoRow:
         self.height = 0
         self.images: list[CustomImg] = []
 
-    def add(self, img: Image, count: int, callbacks: dict) -> bool:
+    def add(self, img_list: list[Image], index: int, callbacks: dict) -> bool:
         """Добавление изображения в строку"""
         if len(self.images) == self.length:
             return False
-        img_cast = CustomImg(img, self.img_width, count, callbacks)
+        img_cast = CustomImg(img_list, self.img_width, index, callbacks)
         img_cast.photo_row = self
         self.images.append(img_cast)
         self.calculation_height()
@@ -283,9 +283,9 @@ class CustomImg:
 
     def __init__(
         self,
-        img: Image,
+        img_list: list[Image],
         img_width: int,
-        count: int,
+        index: int,
         callbacks: dict,
     ):
         self.img_width = img_width
@@ -293,13 +293,14 @@ class CustomImg:
         self.img_name_height = 20
         self.page: Optional["PhotoPage"] = None
         self.photo_row: Optional[PhotoRow] = None
-        self.img = img
-        self.file_name = self.img.filename.split("/")[-1]
+        self.img_list = img_list
+        self.index = index
+        self.file_name = self.img_list[self.index][1]
         self.width_row = None
         self.height_row = None
         self.text_width = None
         self.border = None
-        self.tag = f"img_{count}"
+        self.tag = f"img_{index}"
         self.text_item = None
         self.img_item = None
         self.callback = callbacks
@@ -313,8 +314,9 @@ class CustomImg:
 
     def _create_img_in_docs(self) -> Image:
         """Формирование размера фотографии"""
-        self.img_height = int(self.img.size[1] / self.img.size[0] * self.img_width)
-        return self.img.resize((self.img_width, self.img_height))
+        img = self.img_list[self.index][0]
+        self.img_height = int(img.size[1] / img.size[0] * self.img_width)
+        return img.resize((self.img_width, self.img_height))
 
     def _calculation_text_obj_height(self) -> None:
         """Вычисление высоты текста"""
@@ -327,11 +329,11 @@ class CustomImg:
     def rotation(self, events):
         """Поворот изображения на 90 градусов"""
         if events.keysym == "Right":
-            self.img = self.img.rotate(90, expand=1)
+            self.img_list[self.index][0] = self.img_list[self.index][0].rotate(90, expand=1)
         elif events.keysym == "Left":
-            self.img = self.img.rotate(-90, expand=1)
+            self.img_list[self.index][0] = self.img_list[self.index][0].rotate(-90, expand=1)
         else:
-            self.img = self.img.rotate(90, expand=1)
+            self.img_list[self.index][0] = self.img_list[self.index][0].rotate(90, expand=1)
         self.img_in_doc = self._create_img_in_docs()
         self.tk_img = ImageTk.PhotoImage(self.img_in_doc)
         if not self.photo_row.calculation_height():

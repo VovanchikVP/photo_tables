@@ -34,7 +34,7 @@ class CreateDocx:
         self._all_files = len(self._all_file_names)
         self.col = col
         self.row: Optional[int] = None
-        self.files: Optional[list[Image]] = None
+        self.files: Optional[list[list[Image, str]]] = None
         self._loop = loop
         self._callback = callback
 
@@ -57,7 +57,7 @@ class CreateDocx:
                     p = cell.add_paragraph()
                     r = p.add_run()
                     img_byte_arr = io.BytesIO()
-                    self.files[img_index].save(img_byte_arr, format=self.files[img_index].format)
+                    self.files[img_index][0].save(img_byte_arr, format="PNG")
                     r.add_picture(img_byte_arr)
                     r.add_text(self._all_file_names[img_index])
                     img_index += 1
@@ -74,4 +74,4 @@ class CreateDocx:
         img = Image.open(self._photo_dir / Path(file_name))
         self._completed_files = self._completed_files + 1
         self._callback(self._completed_files, self._all_files)
-        return img
+        return [img, img.filename.split("/")[-1]]
