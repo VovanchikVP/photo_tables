@@ -54,7 +54,7 @@ class CreateDocx:
         for r in table.rows:
             for cell in r.cells:
                 if img_index < len(self.files):
-                    p = cell.add_paragraph()
+                    p = cell.paragraphs[0]
                     r = p.add_run()
                     img_byte_arr = io.BytesIO()
                     self.files[img_index][0].save(img_byte_arr, format="PNG")

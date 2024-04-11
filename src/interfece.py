@@ -216,7 +216,7 @@ class LoadTester(Tk):
 class PhotoRow:
     """Строка с изображениями"""
 
-    MAX_WIDTH_ROW = 200
+    MAX_WIDTH_ROW = 160
 
     def __init__(self, length: int, before_row=None, next_row=None):
         self.before_row: Optional["PhotoRow"] = before_row
@@ -280,6 +280,7 @@ class PhotoRow:
 
 class CustomImg:
     FONT = ("Times", "8", "italic")
+    IMG_PAD = 2
 
     def __init__(
         self,
@@ -314,9 +315,10 @@ class CustomImg:
 
     def _create_img_in_docs(self) -> Image:
         """Формирование размера фотографии"""
+        wight = self.img_width - self.IMG_PAD * 2
         img = self.img_list[self.index][0]
-        self.img_height = int(img.size[1] / img.size[0] * self.img_width)
-        return img.resize((self.img_width, self.img_height))
+        self.img_height = int(img.size[1] / img.size[0] * wight)
+        return img.resize((wight, self.img_height))
 
     def _calculation_text_obj_height(self) -> None:
         """Вычисление высоты текста"""
@@ -405,6 +407,9 @@ class ScrollableFrame(ttk.Frame):
 class PhotoPage:
     """Страница с фотографиями"""
 
+    START_ROW_POSITION = 20
+    BOTTOM_PAD = 20
+
     def __init__(
         self,
         root: Frame,
@@ -425,7 +430,7 @@ class PhotoPage:
 
     def add(self, row: PhotoRow) -> bool:
         """Добавление строки"""
-        if row.height + self.content_height > self.height:
+        if row.height + self.content_height > self.height - self.BOTTOM_PAD:
             return False
         self.rows.append(row)
         self.content_height += row.height
@@ -452,7 +457,7 @@ class PhotoPage:
 
     def show(self):
         """Отображение данных канваса"""
-        height = 0
+        height = self.START_ROW_POSITION
         for num, row in enumerate(self.rows):
             row.add_row_in_canvas(self, height)
             height += row.height
