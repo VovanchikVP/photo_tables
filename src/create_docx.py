@@ -29,6 +29,7 @@ class CreateDocx:
     ):
         self._completed_files: int = 0
         self._load_test_future: Optional[Future] = None
+        self._save_test: Optional[Future] = None
         self._photo_dir = Path(path) if path else self.PHOTO_DIR_DEFAULT
         self._all_file_names = [i for i in listdir(self._photo_dir) if i.split(".")[-1] in self.SUPPORTED_FORMATS]
         self._all_files = len(self._all_file_names)
@@ -37,6 +38,7 @@ class CreateDocx:
         self.files: Optional[list[list[Image, str]]] = None
         self._loop = loop
         self._callback = callback
+        self._callback_save: Optional[Callable] = None
 
     def start(self):
         self._load_test_future = asyncio.run_coroutine_threadsafe(self._make_files(), self._loop)
@@ -45,7 +47,11 @@ class CreateDocx:
         if self._load_test_future:
             self._loop.call_soon_threadsafe(self._load_test_future.cancel)
 
-    def save(self, output: str = None):
+    def run_save(self, callback: Callable):
+        self._callback_save = callback
+        self._save_test = asyncio.run_coroutine_threadsafe(self._save(), self._loop)
+
+    async def _save(self, output: str = None):
         """Сохранение данных в файл"""
         output = self.OUTPUT if output is None else output
         doc = Document()
@@ -62,6 +68,7 @@ class CreateDocx:
                     r.add_text(self._all_file_names[img_index])
                     img_index += 1
         doc.save(output)
+        self._callback_save()
 
     async def _make_files(self):
         """Открытие всех файлов"""
