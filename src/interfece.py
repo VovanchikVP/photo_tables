@@ -46,7 +46,7 @@ class LoadTester(Tk):
         self._submit = ttk.Button(self, text="Сформировать", command=self._start)
         self._submit.grid(column=2, row=1)
         self._save_bt = ttk.Button(self, text="Сохранить", command=self._save)
-        self._save_bt.grid(column=3, row=1)
+        # self._save_bt.grid(column=3, row=1)
         self._pb_label = Label(self, text="Progress:")
         self._pb_label.grid(column=0, row=3)
         self._pb = ttk.Progressbar(self, orient="horizontal", length=200, mode="determinate")
@@ -66,6 +66,7 @@ class LoadTester(Tk):
             self._load_test = None
             self._submit["text"] = "Сформировать"
             self._create_canvas()
+            self._save_bt.grid(column=0, columnspan=4, row=self.row_img_table + 1)
         else:
             self._pb["value"] = pct
             self.after(self._refresh_ms, self._poll_queue)
