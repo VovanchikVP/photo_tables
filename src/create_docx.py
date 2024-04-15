@@ -47,13 +47,13 @@ class CreateDocx:
         if self._load_test_future:
             self._loop.call_soon_threadsafe(self._load_test_future.cancel)
 
-    def run_save(self, callback: Callable):
+    def run_save(self, callback: Callable, url):
         self._callback_save = callback
-        self._save_test = asyncio.run_coroutine_threadsafe(self._save(), self._loop)
+        self._save_test = asyncio.run_coroutine_threadsafe(self._save(url), self._loop)
 
-    async def _save(self, output: str = None):
+    async def _save(self, output=None):
         """Сохранение данных в файл"""
-        output = self.OUTPUT if output is None else output
+        output = self.OUTPUT if output is None else output.name
         doc = Document()
         table = doc.add_table(self.row, self.col)
         img_index = 0

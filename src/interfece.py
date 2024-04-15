@@ -103,8 +103,10 @@ class LoadTester(Tk):
 
     def _save(self):
         """Сохранение результатов в Документе word"""
+
         self._save_bt["text"] = "---"
-        self._last_obj.run_save(self._save_finished)
+        url = filedialog.asksaveasfile(filetypes=[("Microsoft Word", "*.docx")])
+        self._last_obj.run_save(self._save_finished, url)
 
     def _save_finished(self):
         self._save_bt["text"] = "Сохранить"
