@@ -34,23 +34,22 @@ class LoadTester(Tk):
         self._last_obj: Optional[CreateDocx] = None
         self.title("Формирование фототаблицы")
         self._url_label = Label(self, text="Путь:")
-        self._url_label.grid(column=0, row=0)
+        self._url_label.grid(column=0, row=0, sticky="e")
         self._url_field = Entry(self, width=10)
         self._url_field.grid(column=1, row=0)
         self._run_ls = ttk.Button(self, text="Открыть", command=self._open_directory)
-        self._run_ls.grid(column=2, row=0)
+        self._run_ls.grid(column=2, row=0, sticky="nesw", padx=5)
         self._request_label = Label(self, text="Количество колонок:")
-        self._request_label.grid(column=0, row=1)
+        self._request_label.grid(column=0, row=1, sticky="e")
         self._request_field = Entry(self, width=10)
         self._request_field.grid(column=1, row=1)
         self._submit = ttk.Button(self, text="Сформировать", command=self._start)
-        self._submit.grid(column=2, row=1)
+        self._submit.grid(column=2, row=1, sticky="nesw", padx=5)
         self._save_bt = ttk.Button(self, text="Сохранить", command=self._save)
-        # self._save_bt.grid(column=3, row=1)
         self._pb_label = Label(self, text="Progress:")
-        self._pb_label.grid(column=0, row=3)
+        self._pb_label.grid(column=0, row=3, sticky="e", ipady=5)
         self._pb = ttk.Progressbar(self, orient="horizontal", length=200, mode="determinate")
-        self._pb.grid(column=1, row=3, columnspan=2)
+        self._pb.grid(column=1, row=3, columnspan=2, sticky="nesw", padx=5, pady=5)
         self.bind_all("<BackSpace>", self._del_img)
         self.bind_all("<Delete>", self._del_img)
         self.bind_all("<r>", self._rout_img)
@@ -66,7 +65,7 @@ class LoadTester(Tk):
             self._load_test = None
             self._submit["text"] = "Сформировать"
             self._create_canvas()
-            self._save_bt.grid(column=0, columnspan=4, row=self.row_img_table + 1)
+            self._save_bt.grid(column=0, columnspan=4, row=self.row_img_table + 1, sticky="nesw", padx=5, pady=5)
         else:
             self._pb["value"] = pct
             self.after(self._refresh_ms, self._poll_queue)
