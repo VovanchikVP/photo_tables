@@ -12,8 +12,10 @@ from typing import (
 from docx import Document
 from PIL import Image
 
+from src.configs import Configs
 
-class CreateDocx:
+
+class CreateDocx(Configs):
     """Формирование документа с таблицей фотографий"""
 
     PHOTO_DIR_DEFAULT: Path = Path(__file__).parents[1] / Path("photo")
@@ -55,6 +57,8 @@ class CreateDocx:
         """Сохранение данных в файл"""
         output = self.OUTPUT if output is None else output.name
         doc = Document()
+        doc.sections[0].top_margin = self.top_margin_docx()
+        doc.sections[0].bottom_margin = self.bottom_margin_docx()
         table = doc.add_table(self.row, self.col)
         img_index = 0
         for r in table.rows:

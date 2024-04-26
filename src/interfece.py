@@ -18,6 +18,7 @@ from PIL import (
     ImageTk,
 )
 
+from src.configs import Configs
 from src.create_docx import CreateDocx
 
 
@@ -410,11 +411,8 @@ class ScrollableFrame(ttk.Frame):
         canvas.update_idletasks()
 
 
-class PhotoPage:
+class PhotoPage(Configs):
     """Страница с фотографиями"""
-
-    START_ROW_POSITION = 20
-    BOTTOM_PAD = 20
 
     def __init__(
         self,
