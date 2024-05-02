@@ -1,6 +1,5 @@
 from queue import Queue
 from tkinter import (
-    END,
     NW,
     Canvas,
     Entry,
@@ -33,19 +32,16 @@ class LoadTester(Tk):
         self._loop = loop
         self._load_test: Optional[CreateDocx] = None
         self._last_obj: Optional[CreateDocx] = None
+        self.dir_path: Optional[str] = None
         self.title("Формирование фототаблицы")
-        self._url_label = Label(self, text="Путь:")
+        self._url_label = Label(self, text="Количество колонок:")
         self._url_label.grid(column=0, row=0, sticky="e")
-        self._url_field = Entry(self, width=10)
-        self._url_field.grid(column=1, row=0)
+        self._request_field = Entry(self, width=10)
+        self._request_field.grid(column=1, row=0)
         self._run_ls = ttk.Button(self, text="Открыть", command=self._open_directory)
         self._run_ls.grid(column=2, row=0, sticky="nesw", padx=5)
-        self._request_label = Label(self, text="Количество колонок:")
-        self._request_label.grid(column=0, row=1, sticky="e")
-        self._request_field = Entry(self, width=10)
-        self._request_field.grid(column=1, row=1)
         self._submit = ttk.Button(self, text="Сформировать", command=self._start)
-        self._submit.grid(column=2, row=1, sticky="nesw", padx=5)
+        self._submit.grid(column=0, row=1, columnspan=3, sticky="nesw", padx=5)
         self._save_bt = ttk.Button(self, text="Сохранить", command=self._save)
         self._pb_label = Label(self, text="Progress:")
         self._pb_label.grid(column=0, row=3, sticky="e", ipady=5)
@@ -88,7 +84,7 @@ class LoadTester(Tk):
             test = CreateDocx(
                 self._loop,
                 self._queue_update,
-                self._url_field.get(),
+                self.dir_path,
                 int(self._request_field.get()),
             )
             self._pb["value"] = 0
@@ -144,9 +140,7 @@ class LoadTester(Tk):
         return new_canvas
 
     def _open_directory(self):
-        f = filedialog.askdirectory()
-        self._url_field.delete(0, END)
-        self._url_field.insert(0, f)
+        self.dir_path = filedialog.askdirectory()
 
     def _rout_img(self, events):
         current = events.widget.find_withtag("current")[0]
