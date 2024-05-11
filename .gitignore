@@ -4,3 +4,4 @@ venv/
 *.csv
 *.pyc
 demo.docx
+.DS_Store

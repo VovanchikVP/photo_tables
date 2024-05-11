@@ -2,10 +2,11 @@ from queue import Queue
 from tkinter import (
     NW,
     Canvas,
-    Entry,
     Frame,
     Label,
     N,
+    OptionMenu,
+    StringVar,
     Tk,
     filedialog,
     ttk,
@@ -22,6 +23,8 @@ from src.create_docx import CreateDocx
 
 
 class LoadTester(Tk):
+    MAX_COLUMNS = 10
+
     def __init__(self, loop, *args, **kwargs):
         Tk.__init__(self, *args, **kwargs)
         self._queue = Queue()
@@ -36,8 +39,7 @@ class LoadTester(Tk):
         self.title("Формирование фототаблицы")
         self._url_label = Label(self, text="Количество колонок:")
         self._url_label.grid(column=0, row=0, sticky="e")
-        self._request_field = Entry(self, width=10)
-        self._request_field.grid(column=1, row=0)
+        self._select_field()
         self._run_ls = ttk.Button(self, text="Открыть", command=self._open_directory)
         self._run_ls.grid(column=2, row=0, sticky="nesw", padx=5)
         self._submit = ttk.Button(self, text="Сформировать", command=self._start)
@@ -55,6 +57,14 @@ class LoadTester(Tk):
         self.bind_all("<Left>", self._move_img)
         self.bind_all("<Right>", self._move_img)
         # self.bind_all("<KeyPress>", lambda e: print(e))
+
+    def _select_field(self):
+        option = [str(i + 1) for i in range(self.MAX_COLUMNS)]
+        self._columns = StringVar(self)
+        self._request_field = OptionMenu(self, self._columns, *option)
+        self._request_field.config(width=10)
+        self._request_field.grid(column=1, row=0)
+        self._columns.set(option[0])
 
     def _update_bar(self, pct: int):
         if pct == 100:
@@ -85,7 +95,7 @@ class LoadTester(Tk):
                 self._loop,
                 self._queue_update,
                 self.dir_path,
-                int(self._request_field.get()),
+                int(self._columns.get()),
             )
             self._pb["value"] = 0
             self.after(self._refresh_ms, self._poll_queue)
@@ -109,7 +119,7 @@ class LoadTester(Tk):
 
     def _create_canvas(self):
         """Формирование канваса для фото таблицы"""
-        _photo_in_row = int(self._request_field.get())
+        _photo_in_row = int(self._columns.get())
         f = ScrollableFrame(self)
         f.grid(row=self.row_img_table, column=0, columnspan=4)
         f.configure(borderwidth=2, relief="raised")
@@ -153,7 +163,7 @@ class LoadTester(Tk):
         tag_img = str(events.widget.itemconfig(current)["tags"][-1].split(" ")[0])
         num = int(tag_img.split("_")[-1])
         obj = self._last_obj.files.pop(num)
-        _photo_in_row = int(self._request_field.get())
+        _photo_in_row = int(self._columns.get())
         if events.keysym == "Left":
             if not num:
                 self._last_obj.files.append(obj)
