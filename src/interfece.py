@@ -24,6 +24,7 @@ from src.create_docx import CreateDocx
 
 class LoadTester(Tk):
     MAX_COLUMNS = 10
+    FILE_TYPES = ["docx", "pdf"]
 
     def __init__(self, loop, *args, **kwargs):
         Tk.__init__(self, *args, **kwargs)
@@ -66,13 +67,22 @@ class LoadTester(Tk):
         self._request_field.grid(column=1, row=0)
         self._columns.set(option[0])
 
+    def _add_select_file_types(self):
+        """Селект для выбора типа файла для сохранения"""
+        self._file_types = StringVar(self)
+        self._file_types_field = OptionMenu(self, self._file_types, *self.FILE_TYPES)
+        # self._file_types_field.config(width=10)
+        self._file_types_field.grid(column=2, columnspan=2, row=self.row_img_table + 1, sticky="nesw", padx=5, pady=5)
+        self._file_types.set(self.FILE_TYPES[0])
+
     def _update_bar(self, pct: int):
         if pct == 100:
             self._pb["value"] = pct
             self._load_test = None
             self._submit["text"] = "Сформировать"
             self._create_canvas()
-            self._save_bt.grid(column=0, columnspan=4, row=self.row_img_table + 1, sticky="nesw", padx=5, pady=5)
+            self._save_bt.grid(column=0, columnspan=2, row=self.row_img_table + 1, sticky="nesw", padx=5, pady=5)
+            self._add_select_file_types()
         else:
             self._pb["value"] = pct
             self.after(self._refresh_ms, self._poll_queue)
