@@ -1,3 +1,4 @@
+import platform
 from queue import Queue
 from tkinter import (
     NW,
@@ -28,6 +29,7 @@ class LoadTester(Tk):
 
     def __init__(self, loop, *args, **kwargs):
         Tk.__init__(self, *args, **kwargs)
+        self.os_system = platform.system()
         self._queue = Queue()
         self._refresh_ms = 25
         self.row_img_table = 5
@@ -71,7 +73,6 @@ class LoadTester(Tk):
         """Селект для выбора типа файла для сохранения"""
         self._file_types = StringVar(self)
         self._file_types_field = OptionMenu(self, self._file_types, *self.FILE_TYPES)
-        # self._file_types_field.config(width=10)
         self._file_types_field.grid(column=2, columnspan=2, row=self.row_img_table + 1, sticky="nesw", padx=5, pady=5)
         self._file_types.set(self.FILE_TYPES[0])
 
@@ -161,6 +162,7 @@ class LoadTester(Tk):
 
     def _open_directory(self):
         self.dir_path = filedialog.askdirectory()
+        self._start()
 
     def _rout_img(self, events):
         current = events.widget.find_withtag("current")[0]
@@ -317,7 +319,7 @@ class CustomImg:
         self.photo_row: Optional[PhotoRow] = None
         self.img_list = img_list
         self.index = index
-        self.file_name = self.img_list[self.index][1]
+        self.file_name = self._get_file_name()
         self.width_row = None
         self.height_row = None
         self.text_width = None
@@ -340,6 +342,12 @@ class CustomImg:
         img = self.img_list[self.index][0]
         self.img_height = int(img.size[1] / img.size[0] * wight)
         return img.resize((wight, self.img_height))
+
+    def _get_file_name(self):
+        """Получение имени файла на разных ОС"""
+        if platform.system() == "Windows":
+            return self.img_list[self.index][1].split("\\")[-1]
+        return self.img_list[self.index][1]
 
     def _calculation_text_obj_height(self) -> None:
         """Вычисление высоты текста"""
