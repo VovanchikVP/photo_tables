@@ -1,0 +1,13 @@
+-i https://pypi.org/simple
+altgraph==0.17.4
+asyncio==3.4.3
+docx==0.2.4
+lxml==5.1.0; python_version >= '3.6'
+macholib==1.16.3; sys_platform == 'darwin'
+packaging==23.2; python_version >= '3.7'
+pillow==10.2.0; python_version >= '3.8'
+pyinstaller==6.3.0; python_version < '3.13' and python_version >= '3.8'
+pyinstaller-hooks-contrib==2023.12; python_version >= '3.7'
+python-docx==1.1.0; python_version >= '3.7'
+setuptools==69.0.3; python_version >= '3.8'
+typing-extensions==4.9.0; python_version >= '3.8'
