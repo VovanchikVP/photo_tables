@@ -21,7 +21,7 @@ class CreateDocx(Configs):
     """Формирование документа с таблицей фотографий"""
 
     PHOTO_DIR_DEFAULT: Path = Path(__file__).parents[1] / Path("photo")
-    SUPPORTED_FORMATS: list = ["jpg", "png"]
+    SUPPORTED_FORMATS: list = ["jpg", "png", "JPG", "PNG"]
     OUTPUT: Path = Path(__file__).parents[1] / Path("demo.docx")
 
     def __init__(
